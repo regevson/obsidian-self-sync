@@ -1,0 +1,199 @@
+{
+  "main": {
+    "id": "f6e9367d4f76bfd0",
+    "type": "split",
+    "children": [
+      {
+        "id": "e6608bb11a9f5e31",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5ef1abe4a5dadc1e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "anotherfolder/Untitled 4.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "256a739488073861",
+    "type": "split",
+    "children": [
+      {
+        "id": "52b05983e68aadc4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f62bb72d2c37cdc1",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "fbf8d3a2aaf391c4",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "049590bcae2a36e7",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "ec5a00d11ac7d04a",
+    "type": "split",
+    "children": [
+      {
+        "id": "162058e89ad6a11c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dcfe9f0ccf4bcb46",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "anotherfolder/Untitled 4.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "af909cb0b2e1bb07",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "anotherfolder/Untitled 4.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "b58a9fafb3b03cbf",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "976f7da4a09b769d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "anotherfolder/Untitled 4.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "self-sync:Greet": false
+    }
+  },
+  "active": "5ef1abe4a5dadc1e",
+  "lastOpenFiles": [
+    "Pasted image 20240228041353.png",
+    "Pasted image 20240228041050.png",
+    "anotherfolder/Untitled 4.md",
+    "2016-exam.pdf",
+    "anotherfolder/real.pdf",
+    "this.pdf",
+    "Pasted image 20240228034739.png",
+    "altman/bard/gpt3.md",
+    "altman/Untitled 4.md",
+    "anotherfolder/some content.md",
+    "altman/bard/finally some title.md",
+    "anotherfolder",
+    "altman/Untitled 3.md",
+    "altman/openai/danawhite.md",
+    "altman/Untitled 5.md",
+    "altman/openai/Untitled.md",
+    "altman/bard",
+    "openai/gpt3.md",
+    "openai/Untitled.md",
+    "openai/Untitled 1.md",
+    "openai",
+    "sam/Untitled 2.md",
+    "Untitled 2.md",
+    "altman",
+    "Untitled 3.md",
+    "Untitled 1.md",
+    "Untitled.md",
+    "sam/gpt3.md",
+    "samaltman.md",
+    "openai/gpt4.md",
+    "sam",
+    "samaltman.md",
+    "openai.md",
+    "newone.md",
+    "FirstFolder/newone.md",
+    "anothernote.md",
+    "FirstFolder",
+    "merging",
+    "Pasted image 20231213105034.png",
+    "Cryptography/Pasted image 20231213105034.png",
+    "Deep_Learning/9_Convolutional_Neural_Networks/assets/cnn_convolution.png",
+    "Deep_Learning/8_Optimization/assets/taylor_expansion_logo.png",
+    "Deep_Learning/8_Optimization/assets/sgd_with_without_momentum.png",
+    "Deep_Learning/8_Optimization/assets/sgd_momentum.png",
+    "Deep_Learning/8_Optimization/assets/nesterov_momentum_example.png",
+    "Deep_Learning/8_Optimization/assets/nesterov_momentum_algo.png"
+  ]
+}
