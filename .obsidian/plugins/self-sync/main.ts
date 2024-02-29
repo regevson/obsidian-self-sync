@@ -17,6 +17,7 @@ export default class SelfSyncPlugin extends Plugin {
   statusBarItemEl: HTMLElement;
   oldUpdateTimestamp: number = Date.now() / 1000;
   oldFilePaths: string[] = [];
+  syncFilename: string = '.sync';
   apiKey: string = 'XYZ-123-ABC-456-DEF-789';
   url: string = 'http://sync.regevson.com/api/sync';
   vaultName: string = '';
@@ -30,8 +31,12 @@ export default class SelfSyncPlugin extends Plugin {
       console.log("waiting for vault to load");
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    this.oldFilePaths = this.app.vault.getFiles().map(f => f.path);
+
     this.vaultName = this.app.vault.getName();
+
+    // const oldTimestampFile = this.app.vault.getFileByPath(this.syncFilename)!;
+    // this.oldUpdateTimestamp = Number(await this.app.vault.read(oldTimestampFile)!)
+    // this.oldFilePaths = fileContent.split(',');
 
     this.addRibbonIcon('dice', 'Greet', async () => {
       const { spawn } = require('child_process');
@@ -53,6 +58,17 @@ export default class SelfSyncPlugin extends Plugin {
     });
 
     this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+
+  this.registerEvent(this.app.vault.on('modify', (file) => {
+    console.log(`File modified: ${file.name}`);
+  }));
+
+  this.registerEvent(this.app.vault.on('rename', (file) => {
+    console.log('File renamed:', file);
+    // console.log(`File renamed: ${file.name}`);
+  }));
+
   }
 
   async initSync(): Promise<void> {
