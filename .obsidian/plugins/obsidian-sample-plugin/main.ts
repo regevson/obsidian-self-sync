@@ -16,7 +16,7 @@ export default class SelfSyncPlugin extends Plugin {
   settings: MyPluginSettings;
   statusBarItemEl: HTMLElement;
   oldUpdateTimestamp: number = Date.now() / 1000;
-  allFilePaths: string[] = [];
+  oldFilePaths: string[] = [];
   apiKey: string = 'XYZ-123-ABC-456-DEF-789';
   url: string = 'http://sync.regevson.com/api/sync';
   vaultName: string = 'testing'; // TODO: get from settings
@@ -30,7 +30,7 @@ export default class SelfSyncPlugin extends Plugin {
       console.log("waiting for vault to load");
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    this.allFilePaths = this.app.vault.getFiles().map(f => f.path);
+    this.oldFilePaths = this.app.vault.getFiles().map(f => f.path);
 
     this.addRibbonIcon('dice', 'Greet', async () => {
       const { spawn } = require('child_process');
@@ -48,7 +48,7 @@ export default class SelfSyncPlugin extends Plugin {
     });
 
     this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-      console.log('click', evt);
+      // console.log('click', evt);
     });
 
     this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
@@ -57,34 +57,36 @@ export default class SelfSyncPlugin extends Plugin {
   async initSync(): Promise<void> {
     this.statusBarItemEl.setText('Syncing...');
 
-    const filesToSend = await this.iterateAndIdentifyFiles();
+    const [addedOrChangedFiles, deletedFilePaths] = await this.identifyModifiedFiles();
 
-    const headers = {
-      'Authorization': `Bearer ${this.apiKey}`
-    };
-    const lastUploadTimestamp = await this.sendFiles(filesToSend);
+    const lastUploadTimestamp = await this.sendFiles(addedOrChangedFiles, deletedFilePaths);
     this.statusBarItemEl.setText('Up To Date');
   }
 
-  async iterateAndIdentifyFiles(): Promise<Array<any>> {
-    const allFiles = this.app.vault.getFiles();
+  async identifyModifiedFiles(): Promise<[TFile[], string[]]> {
+    const currentFiles = this.app.vault.getFiles();
+    const currentFilePaths = currentFiles.map(f => f.path)
 
-    const allFilePaths = allFiles.map(f => f.path)
     // when moving or renaming files, the modification date of the file is not updated
     // therefore the file would not be sent to the server and therefore we have to add those files manually
-    const modifiedUntrackedFilePaths = allFilePaths.filter(path => !this.allFilePaths.includes(path));
-    const modifiedUntrackedFiles = modifiedUntrackedFilePaths
+    console.log('old vs  new', this.oldFilePaths, currentFilePaths)
+    const deletedFilePaths: string[] = this.oldFilePaths.filter(f => !currentFilePaths.includes(f));
+    const newFilePaths: string[] = currentFilePaths.filter(f => !this.oldFilePaths.includes(f));
+    const modifiedFilePaths: string[] = currentFiles.filter(f => this.shouldSendFile(f))
+                                                    .map(f => f.path);
+    const addedOrChangedFilePaths: string[] = Array.from(new Set([...new Set(newFilePaths), ...new Set(modifiedFilePaths)]));
+    console.log('newFilePaths', newFilePaths)
+    console.log('modifiedFilePaths', modifiedFilePaths)
+
+    const addedOrChangedFiles = addedOrChangedFilePaths
       .map(f => this.app.vault.getAbstractFileByPath(f.trim()))
       .filter((file): file is TFile => file instanceof TFile); // just to ensure not null and correct type
 
-    let modifiedFiles = allFiles.filter(f => this.shouldSendFile(f));
-    modifiedFiles.push(...modifiedUntrackedFiles);
-    modifiedFiles = Array.from(new Set(modifiedFiles)); // remove duplicates -> newly created files are in @modifiedUntrackedFiles and in @modifiedFiles
-    return modifiedFiles;
+    return [addedOrChangedFiles, deletedFilePaths];
   }
 
-  fileModifiedRecently(mtime: number): boolean {
-    return mtime > this.oldUpdateTimestamp * 1000;
+  fileModifiedRecently(file: any): boolean {
+    return file.stat.mtime > (this.oldUpdateTimestamp * 1000);
   }
 
   isValidFileType(filePath: string): boolean {
@@ -92,15 +94,16 @@ export default class SelfSyncPlugin extends Plugin {
   }
 
   shouldSendFile(file: any): boolean {
-    return this.isValidFileType(file.path) && this.fileModifiedRecently(file.stat.mtime);
+    return this.isValidFileType(file.path) && this.fileModifiedRecently(file);
   }
 
-  async sendFiles(filesToSend: Array<any>): Promise<void> {
+  async sendFiles(addedOrChangedFiles: TFile[], deletedFilePaths: string[]): Promise<void> {
+    console.log('starting sync...')
     const headers = {
       'Authorization': `Bearer ${this.apiKey}`
     };
 
-    const formData = await this.packFormData(filesToSend);
+    const formData = await this.packFormData(addedOrChangedFiles, deletedFilePaths);
 
     try {
       const response = await fetch(this.url, {
@@ -114,56 +117,79 @@ export default class SelfSyncPlugin extends Plugin {
 
       await this.processResponse(response);
 
+      console.log('updating')
+      this.oldFilePaths = this.app.vault.getFiles().map(f => f.path);
       this.oldUpdateTimestamp = Date.now() / 1000;
-      this.allFilePaths = this.app.vault.getFiles().map(f => f.path);
 
     } catch (error) {
       console.error('Error making API call:', error);
     }
+    console.log('ending sync...')
   }
 
-  async packFormData(filesToSend: Array<any>): Promise<FormData> {
+  async packFormData(addedOrChangedFiles: TFile[], deletedFilePaths: string[]): Promise<FormData> {
     const formData = new FormData();
-    for(const file of filesToSend) {
+
+    const currentFiles = this.app.vault.getFiles();
+    const currentFilePaths = currentFiles.map(f => f.path)
+    currentFilePaths.forEach(p => {
+      formData.append('all_client_paths', p);
+    });
+
+    for(const file of addedOrChangedFiles) {
       let fileContent = null;
       if(!file.path.endsWith('.md'))
         fileContent = await this.app.vault.readBinary(file);
       else
         fileContent = await this.app.vault.cachedRead(file);
       const blob = new Blob([fileContent], { type: 'application/octet-stream' });
-      formData.append('modified_client_files', blob, file.path);
+      formData.append('modified_and_new_client_files', blob, file.path);
     }
-    if (filesToSend.length === 0)
-      formData.append('modified_client_files', new Blob(), 'empty');
+    if (addedOrChangedFiles.length === 0)
+      formData.append('modified_and_new_client_files', new Blob(), 'empty');
 
-    // also send to the server an index of all file-paths in vault (server uses this for analysis)
-    let allFiles = this.app.vault.getFiles();
-    allFiles.forEach(f => {
-      formData.append('all_client_file_paths', f.path);
+    deletedFilePaths.forEach(f => {
+      formData.append('deleted_client_paths', f);
     });
 
+
     formData.append('last_sync_timestamp', this.oldUpdateTimestamp.toString());
+
+    console.log('modified_and_new_client_files', addedOrChangedFiles.map(f => f.path));
+    console.log('deleted_client_paths', deletedFilePaths);
+    console.log('all_client_paths', currentFilePaths);
 
     return formData;
   }
 
-  async processResponse(response: Response): Promise<void> {
+async processResponse(response: Response): Promise<void> {
     const zipBlob = await response.blob();
     const zipFile = await JSZip.loadAsync(zipBlob);
-    zipFile.forEach(async (relativePath, zipEntry) => {
-      await this.createDirectoriesIfNeeded(relativePath);
+    const saveOperations: Promise<void>[] = []; // Array to hold all save operation promises
 
-      // extract the file
-      zipEntry.async('blob').then(blob => {
-        const file = new File([blob], zipEntry.name);
-        this.saveFile(file, relativePath);
-      });
+    zipFile.forEach((relativePath, zipEntry) => {
+        console.log('extracting file:', zipEntry.name, relativePath);
+        // Instead of awaiting, push the save operation promise into the array
+        const saveOperation = this.createDirectoriesIfNeeded(relativePath).then(() => {
+            return zipEntry.async('blob').then(blob => {
+                const file = new File([blob], zipEntry.name);
+                return this.saveFile(file, relativePath); // This promise is returned
+            });
+        });
+        saveOperations.push(saveOperation);
     });
 
-    const deletedFilePathsCombined = response.headers.get("Deleted-Files"); // files that were deleted on the server (returned as ',' separated string of file-paths)
+    // Wait for all save operations to complete
+    await Promise.all(saveOperations);
+    console.log('after saving'); // This now correctly waits for all file saves
+
+    // Proceed with deletion after all files have been saved
+    const deletedFilePathsCombined = response.headers.get("Deleted-Files");
     const deletedFilePaths = deletedFilePathsCombined ? deletedFilePathsCombined.split(',') : [];
     await this.deleteFiles(deletedFilePaths);
-  }
+}
+
+
 
   async createDirectoriesIfNeeded(filePath: string): Promise<void> {
     try {
@@ -177,12 +203,14 @@ export default class SelfSyncPlugin extends Plugin {
   }
 
   async saveFile(blob: any, targetFilePath: any) {
+    console.log('saving file:', targetFilePath);
     const arrayBuffer = await blob.arrayBuffer();
     targetFilePath = targetFilePath.replace(this.vaultName + '/', '');
     await this.app.vault.adapter.writeBinary(targetFilePath, new Uint8Array(arrayBuffer)); // only takes the relative path of the dir the file is in
   }
 
   async deleteFiles(filePaths: string[]): Promise<void> {
+    console.log('deleting files:', filePaths);
     for(const filePath of filePaths) {
       const file = this.app.vault.getAbstractFileByPath(filePath.trim()); // get file from path
       if(file)

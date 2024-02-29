@@ -48,131 +48,148 @@ async def get_api_key(request: Request):
 def is_valid_api_key(api_key):
     return api_key == "XYZ-123-ABC-456-DEF-789"
 
-def get_all_file_paths_on_server():
-    file_paths = []
-    for file_dir, _, file_names in os.walk(VAULT_PATH, topdown=True):
-        for file_name in file_names:
-            abs_file_path = os.path.join(file_dir, file_name)
-            file_paths.append(abs_file_path)
-    return file_paths
-
-def get_modified_server_file_paths(last_sync_timestamp, new_sync_timestamp):
-    all_file_paths_on_server = get_all_file_paths_on_server()
-
-    modified_file_paths = []
-    for abs_file_path in all_file_paths_on_server:
-        if should_send_file(abs_file_path, last_sync_timestamp, new_sync_timestamp):
-            modified_file_paths.append(abs_file_path)
-
-    return modified_file_paths
-
-def file_modified_recently(abs_file_path, last_sync_timestamp, new_sync_timestamp):
-    return int(os.path.getmtime(abs_file_path)) > int(last_sync_timestamp) and int(os.path.getmtime(abs_file_path)) < int(new_sync_timestamp)
-
-def is_valid_file_type(file_path):
-    return file_path.endswith(VALID_FILE_TYPES)
-
-def should_send_file(abs_file_path, last_sync_timestamp, new_sync_timestamp):
-    return is_valid_file_type(abs_file_path) and file_modified_recently(abs_file_path, last_sync_timestamp, new_sync_timestamp)
-
-async def buffer_modified_client_files(modified_client_files):
-    abs_file_paths = []
-    for modified_client_file in modified_client_files:
-        if modified_client_file.filename == 'empty':
-            return []
-        modified_file_content = await modified_client_file.read()
-        abs_buffer_file_path = os.path.join(BUFFER_PATH, modified_client_file.filename)
-
-        os.makedirs(os.path.dirname(abs_buffer_file_path), exist_ok=True) # create directories if they don't exist
-        with open(abs_buffer_file_path, 'wb') as buffer_file:
-            buffer_file.write(modified_file_content)
-
-        abs_file_path = os.path.join(VAULT_PATH, modified_client_file.filename)
-        abs_file_paths.append(abs_file_path)
-    return abs_file_paths
-
-def store_modified_client_files(modified_client_files):
-    for abs_file_path in modified_client_files:
-        abs_buffer_path = abs_file_path.replace(PLUGIN_NAME, PLUGIN_NAME + '/' + BUFFER_NAME)
-        os.makedirs(os.path.dirname(abs_file_path), exist_ok=True)
-        shutil.move(abs_buffer_path, abs_file_path)
-
-def merge(files_modified_on_server_and_client):
-    empty_file = os.path.join(CURRENT_DIR, 'empty.md')
-    for file in files_modified_on_server_and_client:
-        if '.md' in file:
-            subprocess.run(['git', 'merge-file', file, empty_file, file.replace(VAULT_NAME, BUFFER_NAME + '/' + VAULT_NAME)])
-
-
-def handle_merge_conflicts(modified_server_file_paths, modified_client_file_paths):
-    files_modified_on_server_and_client = list(set(modified_server_file_paths) & set(modified_client_file_paths))
-    merge(files_modified_on_server_and_client)
-    modified_client_files_without_merge_conflicts = list(set(modified_client_file_paths) - set(files_modified_on_server_and_client))
-    store_modified_client_files(modified_client_files_without_merge_conflicts)
-
-def deleteFiles(all_client_rel_file_paths, modified_client_file_paths, modified_server_file_paths):
-    all_file_paths_on_server = get_all_file_paths_on_server()
-    print('modified_client_file_paths', modified_client_file_paths)
-    print('modified_server_file_paths', modified_server_file_paths)
-    print('all_file_paths_on_server', all_file_paths_on_server)
-    # print('all_client_rel_file_paths', all_client_rel_file_paths) # relative !!!
-
-    all_client_file_paths = []
-    for f in all_client_rel_file_paths:
-        all_client_file_paths.append(os.path.join(VAULT_PATH, f))
-    print('all_client_file_paths', all_client_file_paths)
-
-
-    files_deleted_on_server = set(all_client_file_paths) - set(modified_client_file_paths) - set(all_file_paths_on_server)
-
-    files_deleted_on_client = set(all_file_paths_on_server) - set(modified_server_file_paths) - set(all_client_file_paths)
-    print('files_deleted_on_client', files_deleted_on_client)
-
-    for file_deleted_on_client in files_deleted_on_client:
-        os.remove(file_deleted_on_client)
-
-    files_deleted_on_server = [file_deleted_on_server.replace(VAULT_PATH + '/', '') for file_deleted_on_server in files_deleted_on_server]
-    print('files_deleted_on_server', files_deleted_on_server)
-
-    return files_deleted_on_server
-    # return []
-
 
 lock = asyncio.Lock()
 @app.post("/api/sync")
 async def sync(_: str = Depends(get_api_key),
-               modified_client_files: List[UploadFile] = File([]),
-               all_client_file_paths: List[str] = Form([]),
+               modified_and_new_client_files: List[UploadFile] = File([]),
+               deleted_client_paths: List[str] = Form([]),
+               all_client_paths: List[str] = Form([]),
                last_sync_timestamp: float = Form(...)
               ):
 
     async with lock:
         new_sync_timestamp = time.time()
-        modified_server_file_paths = get_modified_server_file_paths(last_sync_timestamp, new_sync_timestamp)
-        modified_client_file_paths = await buffer_modified_client_files(modified_client_files)
-        handle_merge_conflicts(modified_server_file_paths, modified_client_file_paths)
 
-        zip_filename = fill_zip_with_modified_server_files(modified_server_file_paths)
+        if modified_and_new_client_files[0].filename == 'empty':
+            modified_and_new_client_files = []
 
-        files_deleted_on_server = deleteFiles(all_client_file_paths, modified_client_file_paths, modified_server_file_paths)
+        delete_from_server(deleted_client_paths)
+
+        await buffer_modified_and_new_client_files(modified_and_new_client_files)
+
+        modified_and_new_client_paths = list(map(lambda f: f.filename, modified_and_new_client_files))
+
+        print('modified_and_new_client_paths', modified_and_new_client_paths)
+        print('deletedclientpaths', deleted_client_paths)
+        print('allclientpaths', all_client_paths)
+
+        all_server_paths = get_all_paths_on_server()
+        print('allserverpaths', all_server_paths)
+
+        modified_server_paths = get_modified_server_paths(last_sync_timestamp, 
+                                                          new_sync_timestamp, 
+                                                          all_server_paths)
+        print('modifiedserverpaths', modified_server_paths)
+
+        conflict_paths = list(set(modified_server_paths) & set(modified_and_new_client_paths))
+        print('conflictpaths', conflict_paths)
+
+        paths_to_add_to_client, paths_to_del_from_client = sync_client(all_client_paths,
+                                                                               all_server_paths,
+                                                                               modified_server_paths,
+                                                                               modified_and_new_client_paths,
+                                                                               deleted_client_paths)
+        print('pathstoaddtoclient', paths_to_add_to_client)
+        print('pathstodelfromclient', paths_to_del_from_client)
+
+        paths_to_add_to_server = set(modified_and_new_client_paths) - set(conflict_paths)
+        print('pathstoaddtoserver', paths_to_add_to_server)
+
+        write_conflict_paths_to_server(conflict_paths)
+        write_to_server(paths_to_add_to_server)
+
+        zip_filename = fill_zip_with_modified_server_files(paths_to_add_to_client)
 
         response = StreamingResponse(
             iterfile(zip_filename),
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename={zip_filename}",
-                "Deleted-Files": ",".join(files_deleted_on_server)
+                "Deleted-Files": ",".join(paths_to_del_from_client)
             }
         )
         response.headers['Access-Control-Expose-Headers'] = 'Deleted-Files'
-        # print('test', str(time.time()))
+
         return response
+
+async def buffer_modified_and_new_client_files(files):
+    for f in files:
+        file_content = await f.read()
+        abs_path = os.path.join(BUFFER_PATH, f.filename)
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True) # create directories if they don't exist
+        with open(abs_path, 'wb') as buffer_file:
+            buffer_file.write(file_content)
+
+def get_all_paths_on_server():
+    paths = []
+    for file_dir, _, file_names in os.walk(VAULT_PATH, topdown=True):
+        for file_name in file_names:
+            abs_path = os.path.join(file_dir, file_name)
+            rel_path = abs_path.replace(VAULT_PATH + '/', '')
+            paths.append(rel_path)
+    return paths
+
+def get_modified_server_paths(last_sync_timestamp, new_sync_timestamp, all_server_paths):
+
+    def should_send_file(abs_path, last_sync_timestamp, new_sync_timestamp):
+        return is_valid_file_type(abs_path) and file_modified_recently(abs_path, last_sync_timestamp, new_sync_timestamp)
+
+    def is_valid_file_type(abs_path):
+        return abs_path.endswith(VALID_FILE_TYPES)
+
+    def file_modified_recently(abs_path, last_sync_timestamp, new_sync_timestamp):
+        return int(os.path.getmtime(abs_path)) > int(last_sync_timestamp) and int(os.path.getmtime(abs_path)) < int(new_sync_timestamp)
+    
+    modified_paths = []
+    for path in all_server_paths:
+        abs_path = os.path.join(VAULT_PATH, path)
+        if should_send_file(abs_path, last_sync_timestamp, new_sync_timestamp):
+            modified_paths.append(path)
+    
+    return modified_paths
+
+def sync_client(all_client_paths, 
+                        all_server_paths, 
+                        modified_server_paths, 
+                        modified_and_new_client_paths, 
+                        deleted_client_paths
+                        ):
+    paths_to_add_to_client = (set(all_server_paths) - set(all_client_paths)) | set(modified_server_paths)
+    paths_to_delete_from_client = set(all_client_paths) - set(all_server_paths) - set(modified_and_new_client_paths)
+    print()
+    print('!!!!', set(all_client_paths), '-', set(all_server_paths), '-', set(modified_and_new_client_paths), '=', paths_to_delete_from_client)
+    print()
+    return paths_to_add_to_client, paths_to_delete_from_client
+
+def write_conflict_paths_to_server(conflict_paths):
+    empty_file = os.path.join(CURRENT_DIR, 'empty.md')
+    for path in conflict_paths:
+        if '.md' in path:
+            abs_buffer_path = os.path.join(BUFFER_PATH, path)
+            abs_path = os.path.join(VAULT_PATH, path)
+            subprocess.run(['git', 'merge-file', abs_path, empty_file, abs_buffer_path])
+
+def write_to_server(paths_to_add_to_server):
+    for path in paths_to_add_to_server:
+        abs_buffer_path = os.path.join(BUFFER_PATH, path)
+        abs_path = os.path.join(VAULT_PATH, path)
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        shutil.move(abs_buffer_path, abs_path)
+
+def delete_from_server(paths_to_del_from_server):
+    for path in paths_to_del_from_server:
+        abs_path = os.path.join(VAULT_PATH, path)
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
 
 def fill_zip_with_modified_server_files(modified_server_file_paths):
     zip_filename = os.path.join(CURRENT_DIR, TMP_ZIP_NAME)
     with ZipFile(zip_filename, 'w') as zip:
-        for abs_file_path in modified_server_file_paths:
-            zip.write(abs_file_path, os.path.relpath(abs_file_path, CURRENT_DIR))
+        for path in modified_server_file_paths:
+            abs_path = os.path.join(VAULT_PATH, path)
+            print('write following file to zip', abs_path)
+            zip.write(abs_path, os.path.relpath(abs_path, CURRENT_DIR))
         zip.close()
     return zip_filename
 
