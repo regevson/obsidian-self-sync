@@ -1,0 +1,10 @@
+{
+	"id": "self-sync",
+	"name": "Self Sync",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Self Hosting Sync",
+	"author": "Juwal Regev",
+	"authorUrl": "https://regevson.com",
+	"isDesktopOnly": false
+}
