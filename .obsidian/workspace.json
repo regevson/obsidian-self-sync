@@ -8,12 +8,12 @@
         "type": "tabs",
         "children": [
           {
-            "id": "5ef1abe4a5dadc1e",
+            "id": "8d507ebe8caecdb8",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "anotherfolder/Untitled 4.md",
+                "file": "jflksfsdf.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "anotherfolder/Untitled 4.md",
+                "file": "jflksfsdf.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "anotherfolder/Untitled 4.md",
+                "file": "jflksfsdf.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "anotherfolder/Untitled 4.md"
+                "file": "jflksfsdf.md"
               }
             }
           }
@@ -144,56 +144,57 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "self-sync:Greet": false
+      "self-sync:Sync": false
     }
   },
-  "active": "5ef1abe4a5dadc1e",
+  "active": "8d507ebe8caecdb8",
   "lastOpenFiles": [
-    "Pasted image 20240228041353.png",
-    "Pasted image 20240228041050.png",
-    "anotherfolder/Untitled 4.md",
-    "2016-exam.pdf",
-    "anotherfolder/real.pdf",
-    "this.pdf",
-    "Pasted image 20240228034739.png",
-    "altman/bard/gpt3.md",
-    "altman/Untitled 4.md",
-    "anotherfolder/some content.md",
-    "altman/bard/finally some title.md",
-    "anotherfolder",
-    "altman/Untitled 3.md",
-    "altman/openai/danawhite.md",
-    "altman/Untitled 5.md",
-    "altman/openai/Untitled.md",
-    "altman/bard",
-    "openai/gpt3.md",
-    "openai/Untitled.md",
-    "openai/Untitled 1.md",
-    "openai",
-    "sam/Untitled 2.md",
-    "Untitled 2.md",
-    "altman",
-    "Untitled 3.md",
-    "Untitled 1.md",
-    "Untitled.md",
-    "sam/gpt3.md",
-    "samaltman.md",
-    "openai/gpt4.md",
-    "sam",
-    "samaltman.md",
-    "openai.md",
+    "Untitled Kanban.md",
+    "lfjslflkdsf.md",
+    "jflksfsdf.md",
+    "juwal.md",
+    "yellow.md",
+    "yoyoyo.md",
+    "here.md",
+    "Untitled.canvas",
+    "Excalidraw/Drawing 2024-02-29 23.24.50.excalidraw.md",
+    "Excalidraw",
+    "2024-02-29.md",
+    "NewFOlder/trashone.md",
+    "NewFOlder/test.md",
+    "NewFOlder/rename.md",
+    "NewFOlder/Untitled.md",
+    "NewFOlder",
+    "Outer/trashone.md",
+    "Outer/test.md",
+    "Outer/rename.md",
+    "Outer/Untitled.md",
+    "Outer",
+    "newname.md",
+    "create.md",
+    "sync_tmstmp",
+    "tst",
+    "tst.txt",
+    "Inner/Untitled.md",
+    "Inner/trashone.md",
+    "trashone.md",
+    "tstone.md",
+    "newone.md~",
     "newone.md",
-    "FirstFolder/newone.md",
-    "anothernote.md",
-    "FirstFolder",
-    "merging",
-    "Pasted image 20231213105034.png",
-    "Cryptography/Pasted image 20231213105034.png",
-    "Deep_Learning/9_Convolutional_Neural_Networks/assets/cnn_convolution.png",
-    "Deep_Learning/8_Optimization/assets/taylor_expansion_logo.png",
-    "Deep_Learning/8_Optimization/assets/sgd_with_without_momentum.png",
-    "Deep_Learning/8_Optimization/assets/sgd_momentum.png",
-    "Deep_Learning/8_Optimization/assets/nesterov_momentum_example.png",
-    "Deep_Learning/8_Optimization/assets/nesterov_momentum_algo.png"
+    "Inner/rename.md",
+    "Inner/test.md",
+    "Inner",
+    "test.md~",
+    "Deep_Learning",
+    "Deep_Learning/0_Signal_Processing/assets/dft_logo.png",
+    "Deep_Learning/0_Signal_Processing/assets/impulse_train_freq_domain.png",
+    "Deep_Learning/8_Optimization/assets/batchnorm_overview_without.png",
+    "Deep_Learning/0_Signal_Processing/assets/TEMP_cos_freq_domain.png",
+    "Deep_Learning/0_Signal_Processing/assets/impulse_train_time_domain.png",
+    "Deep_Learning/0_Signal_Processing/assets/TEMP_freq_domain.png",
+    "Deep_Learning/0_Signal_Processing/assets/filters.png",
+    "Deep_Learning/8_Optimization/assets/momentum_algo.png",
+    "Deep_Learning/3_Probability_and_Information_Theory/assets/beta_distribution.jpg",
+    "Deep_Learning/14_Autoencoders/assets/autoencoder_high_level.png"
   ]
 }

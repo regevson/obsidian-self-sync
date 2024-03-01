@@ -1,5 +1,5 @@
 [
   "sample-plugin",
-  "hot-reload",
-  "self-sync"
+  "self-sync",
+  "hot-reload"
 ]

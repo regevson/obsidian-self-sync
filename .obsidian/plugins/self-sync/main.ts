@@ -17,32 +17,51 @@ export default class SelfSyncPlugin extends Plugin {
   statusBarItemEl: HTMLElement;
   oldUpdateTimestamp: number = Date.now() / 1000;
   oldFilePaths: string[] = [];
-  syncFilename: string = '.sync';
+  oldPathsFilename: string = 'sync_fls';
+  oldTimestampFilename: string = 'sync_tmstmp';
   apiKey: string = 'XYZ-123-ABC-456-DEF-789';
   url: string = 'http://sync.regevson.com/api/sync';
-  vaultName: string = '';
+  vaultName: string = this.app.vault.getName();
+  socket: any = new WebSocket('ws://sync.regevson.com/api/ws');
 
   async onload() {
     await this.loadSettings();
-
     this.statusBarItemEl = this.addStatusBarItem();
 
-    while (this.app.vault.getFiles().length === 0) {
-      console.log("waiting for vault to load");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    await this.wait_for_vault_to_load()
 
-    this.vaultName = this.app.vault.getName();
+    // // When the socket is open, send some text
+    // this.socket.onopen = function(event) {
+    //   // Sending a text string
+    //   this.socket.send('Hello, server!');
 
-    // const oldTimestampFile = this.app.vault.getFileByPath(this.syncFilename)!;
-    // this.oldUpdateTimestamp = Number(await this.app.vault.read(oldTimestampFile)!)
+    //   // Sending binary data
+    //   const binaryData = new ArrayBuffer(1024); // An example binary data
+    //   this.socket.send(binaryData);
+    // };
+
+    // // Receiving data (either text or binary)
+    // this.socket.onmessage = function(event) {
+    //   if (typeof event.data === 'string') {
+    //     console.log('Received string:', event.data);
+    //   } else {
+    //     // Assuming binary data
+    //     console.log('Received binary data:', event.data);
+    //   }
+    // };
+
+
+
+    // const oldTimestampFile = this.app.vault.getFolderByPath('.tst')!;
+    // console.log('file', oldTimestampFile)
+    // this.oldUpdateTimestamp = Number(await this.app.vault.read(oldTimestampFile))
     // this.oldFilePaths = fileContent.split(',');
 
-    this.addRibbonIcon('dice', 'Greet', async () => {
-      const { spawn } = require('child_process');
+    // -------------------------- SOME OTHER SETTINGS ---------------------------
 
+    this.addRibbonIcon('cloud', 'Sync', async () => {
+      const { spawn } = require('child_process');
       await this.initSync()
-      //const intervalId = setInterval(async () => {await this.initSync(directoryPath, vaultName, apiKey, url, this.oldUpdateTimestamp)}, 5000);
     });
 
     this.addCommand({
@@ -53,31 +72,64 @@ export default class SelfSyncPlugin extends Plugin {
       }
     });
 
-    this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-      // console.log('click', evt);
-    });
+    // this.registerEvent(this.app.vault.on('create', (file: TFile) => {
+    //   console.log(`File created: ${file.name}`);
+    // }));
 
-    this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+    this.registerEvent(this.app.vault.on('modify', async (file: TFile) => {
+      console.log(`File modified: ${file.name}`);
 
+      this.socket.send('sync-request');
 
-  this.registerEvent(this.app.vault.on('modify', (file) => {
-    console.log(`File modified: ${file.name}`);
-  }));
+      this.socket.onmessage = function(event: any) {
+        console.log('sync-protocol:', event.data);
+      }
 
-  this.registerEvent(this.app.vault.on('rename', (file) => {
-    console.log('File renamed:', file);
-    // console.log(`File renamed: ${file.name}`);
-  }));
+      let fileContent = null;
+      if(!file.path.endsWith('.md'))
+        fileContent = await this.app.vault.readBinary(file);
+      else
+        fileContent = await this.app.vault.cachedRead(file);
+      const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+      this.socket.send(blob);
+    }));
 
+    this.registerEvent(this.app.vault.on('rename', (file) => {
+      console.log('File renamed:', file);
+    }));
+
+    this.registerEvent(this.app.vault.on('delete', (file) => {
+      console.log('File deleted:', file.name);
+    }));
+
+  }
+
+  async wait_for_vault_to_load() {
+    while (this.app.vault.getFiles().length === 0) {
+      console.log("waiting for vault to load");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
 
   async initSync(): Promise<void> {
     this.statusBarItemEl.setText('Syncing...');
 
-    const [addedOrChangedFiles, deletedFilePaths] = await this.identifyModifiedFiles();
+    this.socket.send('sync-request');
+    this.socket.onmessage = function(event: any) {
+      console.log('sync-protocol:', event.data);
+    }
 
-    const lastUploadTimestamp = await this.sendFiles(addedOrChangedFiles, deletedFilePaths);
-    this.statusBarItemEl.setText('Up To Date');
+    // const [addedOrChangedFiles, deletedFilePaths] = await this.identifyModifiedFiles();
+    // send to server
+
+
+
+
+
+
+
+    // const lastUploadTimestamp = await this.sendFiles(addedOrChangedFiles, deletedFilePaths);
+    // this.statusBarItemEl.setText('Up To Date');
   }
 
   async identifyModifiedFiles(): Promise<[TFile[], string[]]> {
